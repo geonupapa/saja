@@ -30,7 +30,16 @@ body {
   min-height: 100vh;
   padding-bottom: calc(84px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
+  /* 한국어는 낱말 단위로만 줄바꿈 (iOS 사파리는 기본값이 글자 단위) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-break: strict;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
+p, h2, h4, .question, .feedback, .tap-hint { text-wrap: pretty; }
+.panel p, .panel h2, .question p { text-wrap: balance; }
+.nw { white-space: nowrap; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
 
 /* ---------- 상단 ---------- */
@@ -118,13 +127,20 @@ main { max-width: 560px; margin: 0 auto; padding: 8px 16px 24px; }
 .back-title { font-family: var(--font-title); font-size: 34px; display: flex; align-items: center; gap: 8px; }
 .back-title small { font-size: 30px; }
 
-.hanja-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hanja-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 380px) {
+  .hanja-grid { gap: 5px; }
+  .face { padding: 16px; }
+  .hanja-grid .hj { padding: 8px 0 6px; }
+  .hanja-grid .hj .hun { font-size: 12px; letter-spacing: -0.4px; padding: 0 1px; }
+}
 .hj {
   background: #fffaf1; border: 2px solid var(--line); border-radius: 14px;
   text-align: center; padding: 8px 2px 6px;
 }
 .hj b { display: block; font-family: var(--font-hanja); font-size: 34px; line-height: 1.15; }
-.hj span { font-size: 14px; color: var(--soft); word-break: keep-all; }
+.hj .hun { display: block; font-size: 13px; line-height: 1.25; color: var(--soft); padding: 0 2px; }
+.hj .eum { display: block; font-style: normal; font-family: var(--font-title); font-size: 18px; line-height: 1.3; color: var(--ink); }
 
 .box { border-radius: 16px; padding: 12px 14px; line-height: 1.55; word-break: keep-all; }
 .box h4 { margin: 0 0 4px; font-family: var(--font-title); font-weight: 400; font-size: 17px; }
@@ -135,7 +151,8 @@ main { max-width: 560px; margin: 0 auto; padding: 8px 16px 24px; }
 .box.mean h4 { color: var(--sun-deep); }
 .box.ex { background: #e8f9ef; }
 .box.ex h4 { color: #23955f; }
-mark { background: var(--mark); padding: 0 3px; border-radius: 4px; font-weight: 700; }
+mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 4px; font-weight: 700;
+  box-shadow: 0 0 0 2px var(--mark); }
 
 .speak {
   width: 48px; height: 48px; flex: none; border-radius: 50%;
@@ -159,6 +176,8 @@ mark { background: var(--mark); padding: 0 3px; border-radius: 4px; font-weight:
 .btn.good { background: var(--leaf); border-color: #2f9e69; box-shadow: 0 5px 0 #2f9e69; color: #fff; }
 .btn.again { background: #ffe4ea; border-color: #ffb3c3; box-shadow: 0 5px 0 #ffb3c3; color: #c23a5a; }
 .btn.small { flex: none; min-height: 48px; font-size: 17px; }
+.btn.lock { font-size: 17px; }
+.row .btn.again, .row .btn.good { white-space: nowrap; padding: 10px 8px; }
 .btn.block { width: 100%; }
 .nav-arrow { flex: none; width: 64px; }
 
@@ -259,6 +278,11 @@ mark { background: var(--mark); padding: 0 3px; border-radius: 4px; font-weight:
 @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
 
 @media (max-width: 380px) {
+  body { font-size: 17px; }
+  .top h1 { font-size: 21px; }
+  .btn { font-size: 18px; }
+  .box.mean { font-size: 19px; }
+  .question { font-size: 20px; }
   .syl { width: 56px; height: 64px; font-size: 38px; }
   .hj b { font-size: 28px; }
   .back-title { font-size: 28px; }

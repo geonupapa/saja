@@ -89,8 +89,15 @@
   // ---------- 카드 ----------
   function cardHTML(it, { num, isFlipped }) {
     const syl = [...it.w].map((c) => `<span class="syl">${c}</span>`).join("");
-    const hj = [...it.h].map((c, i) => `<div class="hj"><b>${c}</b><span>${it.hun[i]}</span></div>`).join("");
-    const ex = it.ex.split(it.w).join(`<mark>${it.w}</mark>`);
+    // 훈음 "가운데 중" → 훈(가운데)과 음(중)을 두 줄로 나눠 좁은 화면에서도 가지런하게
+    const hj = [...it.h].map((c, i) => {
+      const k = it.hun[i].lastIndexOf(" ");
+      const hun = it.hun[i].slice(0, k), eum = it.hun[i].slice(k + 1);
+      return `<div class="hj"><b>${c}</b><span class="hun">${hun}</span><em class="eum">${eum}</em></div>`;
+    }).join("");
+    // 강조한 사자성어와 뒤에 붙는 조사(을, 이에요 등)가 줄바꿈으로 떨어지지 않게 묶기
+    const ex = it.ex.replace(new RegExp(`${it.w}([^\\s.,!?]*)`, "g"),
+      (_, tail) => `<span class="nw"><mark>${it.w}</mark>${tail}</span>`);
     const spk = canSpeak ? `<button class="speak" data-act="say" data-id="${it.id}" aria-label="읽어 주기">🔊</button>` : "";
     return `
       <div class="card-wrap">
@@ -131,7 +138,7 @@
           <div class="panel">
             <div class="huge">🏆</div>
             <h2>사자성어 박사 탄생!</h2>
-            <p>사자성어 ${IDIOMS.length}개를 모두 공부했어요.<br>정말 대단해요!</p>
+            <p>사자성어 ${IDIOMS.length}개를 모두 공부했어요. 정말 대단해요!</p>
             <p class="muted">복습 탭에서 다시 보며 잊지 않게 해요.</p>
           </div>
           <button class="btn primary block" data-act="go-review">🔁 복습하러 가기</button>`;
@@ -143,7 +150,8 @@
           <div class="huge">🎉</div>
           <h2>오늘 공부 끝!</h2>
           <p>오늘 퀴즈에서 <b>${sc}개</b> 맞혔어요.</p>
-          <p>내일 새로운 카드 <b>5장</b>이 기다려요.<br>내일 또 만나요! 👋</p>
+          <p>내일 새로운 카드 <b>5장</b>이 기다려요.</p>
+          <p>내일 또 만나요! 👋</p>
         </div>
         <div class="row">
           <button class="btn" data-act="again-cards">📖 오늘 카드 다시 보기</button>
@@ -163,12 +171,12 @@
     const firstTime = d === 0 && !Object.keys(state.seen).length;
 
     $app.innerHTML = `
-      ${firstTime ? `<div class="panel"><p>👋 안녕! 사자성어는 <b>네 글자로 된 지혜로운 말</b>이에요.<br>카드를 눌러 뜻을 보고, 다 외우면 퀴즈를 풀어요!</p></div>` : ""}
+      ${firstTime ? `<div class="panel"><p>👋 안녕! 사자성어는 <b class="nw">네 글자로 된</b> <b class="nw">지혜로운 말</b>이에요.</p><p>카드를 눌러 뜻을 보고, 다 외우면 퀴즈를 풀어요!</p></div>` : ""}
       <div class="progress">${dots}</div>
       ${cardHTML(it, { num: `${pos + 1} / ${items.length}`, isFlipped: flipped })}
       ${flipped ? `
         <div class="row">
-          <button class="btn again" data-act="weak">🔁 한 번 더 볼래요</button>
+          <button class="btn again" data-act="weak">🔁 다시 볼래요</button>
           <button class="btn good" data-act="know">😊 외웠어요!</button>
         </div>` : `
         <div class="row">
@@ -177,8 +185,8 @@
           <button class="btn nav-arrow" data-act="next" ${pos === items.length - 1 ? "disabled" : ""} aria-label="다음 카드">▶</button>
         </div>`}
       <div class="row">
-        <button class="btn block ${allSeen ? "primary" : ""}" data-act="start-quiz" ${allSeen ? "" : "disabled"}>
-          ${allSeen ? "🎯 오늘의 퀴즈 풀기!" : `🔒 카드 5장의 뜻을 모두 보면 퀴즈가 열려요`}
+        <button class="btn block ${allSeen ? "primary" : "lock"}" data-act="start-quiz" ${allSeen ? "" : "disabled"}>
+          ${allSeen ? "🎯 오늘의 퀴즈 풀기!" : `🔒 5장을 다 보면 퀴즈가 열려요`}
         </button>
       </div>`;
   }
@@ -213,7 +221,7 @@
     const choices = shuffle([it.w, ...wrongs]);
     if (type === "picture") {
       return { it, answer: it.w, choices,
-        prompt: `<div class="big-emoji" style="font-size:56px">${it.e}</div><p>“${it.lit}”<br>이런 사자성어는 무엇일까요?</p>` };
+        prompt: `<div class="big-emoji" style="font-size:56px">${it.e}</div><p>“${it.lit}”</p><p class="muted">이런 사자성어는 무엇일까요?</p>` };
     }
     return { it, answer: it.w, choices,
       prompt: `<p>💡 <b>${it.m}</b></p><p class="muted">이런 뜻을 가진 사자성어는 무엇일까요?</p>` };
@@ -300,7 +308,7 @@
     if (kind === "today") {
       msg = pass
         ? `<p>오늘 공부를 마쳤어요! 도장판에 <b>도장 쾅!</b> 🏅</p>`
-        : `<p>조금만 더 하면 돼요!<br>카드를 한 번 더 보고 다시 도전해요.</p><p class="muted">5문제 중 3개 이상 맞히면 도장을 받아요.</p>`;
+        : `<p>조금만 더 하면 돼요!</p><p>카드를 한 번 더 보고 다시 도전해요.</p><p class="muted">5문제 중 3개 이상 맞히면 도장을 받아요.</p>`;
     } else {
       msg = `<p>복습 최고! 별을 모았어요.</p>`;
     }
