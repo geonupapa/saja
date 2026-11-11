@@ -364,8 +364,6 @@
       if (c) return `<div class="stamp done"><span><b>참!</b>${d + 1}일</span></div>`;
       return `<div class="stamp ${d === dayIdx() ? "now" : ""}">${d + 1}</div>`;
     }).join("");
-    const canOpenNext = state.completed[dayIdx()] && state.unlocked < TOTAL_DAYS;
-
     $app.innerHTML = `
       <div class="panel">
         <h2>🏅 나의 도장판</h2>
@@ -376,19 +374,96 @@
           <div class="stat"><b>${knownCount}</b><span>외운 사자성어</span></div>
           <div class="stat"><b>${state.stars}</b><span>모은 별</span></div>
         </div>
-        <details class="parent">
-          <summary>👨‍👩‍👧 보호자 메뉴</summary>
-          <p class="muted">오늘 공부를 마친 뒤, 다음 날 카드를 미리 열 수 있어요. 기록은 이 기기의 브라우저에만 저장돼요.</p>
-          <div class="row">
-            <button class="btn small" data-act="open-next" ${canOpenNext ? "" : "disabled"}>⏩ 다음 카드 미리 열기</button>
-            <button class="btn small again" data-act="reset">🗑 기록 지우기</button>
-          </div>
-        </details>
+        <button class="parent-btn" data-act="parent">🔒 보호자 메뉴</button>
       </div>`;
+  }
+
+  // ---------- 보호자 메뉴 (비밀번호 잠금) ----------
+  const PARENT_PIN = "4633";
+  let parent = null; // { unlocked, buf, msg, bad }
+
+  function openParent() {
+    parent = { unlocked: false, buf: "", msg: "", bad: false };
+    modalItem = null;
+    $modal.classList.add("parent-modal");
+    renderParent();
+    $modal.hidden = false;
+  }
+
+  function renderParent() {
+    const p = parent;
+    let body;
+    if (!p.unlocked) {
+      const dots = Array.from({ length: PARENT_PIN.length }, (_, i) => `<i class="${i < p.buf.length ? "on" : ""}"></i>`).join("");
+      const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"].map((k) => {
+        if (!k) return `<span></span>`;
+        if (k === "del") return `<button class="key del" data-act="pin-del" aria-label="지우기">⌫</button>`;
+        return `<button class="key" data-act="pin" data-v="${k}">${k}</button>`;
+      }).join("");
+      body = `
+        <h2>🔒 보호자 메뉴</h2>
+        <p class="muted">보호자 비밀번호 4자리를 눌러 주세요.</p>
+        <div class="pin-dots ${p.bad ? "bad" : ""}">${dots}</div>
+        <p class="pin-msg bad">${p.msg || "&nbsp;"}</p>
+        <div class="keypad">${keys}</div>`;
+    } else {
+      const canOpenNext = state.completed[dayIdx()] && state.unlocked < TOTAL_DAYS;
+      body = `
+        <h2>👨‍👩‍👧 보호자 메뉴</h2>
+        <div class="menu-list">
+          <button class="btn" data-act="open-next" ${canOpenNext ? "" : "disabled"}>⏩ 다음 날 카드 미리 열기</button>
+          <p class="muted">${canOpenNext ? "오늘 공부를 마쳐서 다음 카드 5장을 지금 열 수 있어요." : "오늘 퀴즈까지 마치면 열 수 있어요."}</p>
+          <button class="btn again" data-act="reset">🗑 공부 기록 모두 지우기</button>
+          <p class="muted">기록은 이 기기의 브라우저에만 저장돼요.</p>
+        </div>
+        <button class="btn block" data-act="parent-close">닫기</button>`;
+    }
+    $modalBody.innerHTML = `<div class="panel parent-box">${body}</div>`;
+  }
+
+  function pinInput(d) {
+    const p = parent;
+    if (!p || p.unlocked || p.buf.length >= PARENT_PIN.length) return;
+    p.buf += d;
+    p.msg = ""; p.bad = false;
+    renderParent();
+    if (p.buf.length < PARENT_PIN.length) return;
+    setTimeout(() => {
+      if (parent !== p) return;
+      if (p.buf === PARENT_PIN) p.unlocked = true;
+      else { p.msg = "비밀번호가 맞지 않아요."; p.bad = true; }
+      p.buf = "";
+      renderParent();
+    }, 150);
+  }
+
+  function parentAction(act, el) {
+    const p = parent;
+    switch (act) {
+      case "pin": pinInput(el.dataset.v); break;
+      case "pin-del": p.buf = p.buf.slice(0, -1); renderParent(); break;
+      case "parent-close": closeModal(); break;
+      case "open-next":
+        if (!(state.completed[dayIdx()] && state.unlocked < TOTAL_DAYS)) return;
+        state.completed[dayIdx()].date = "0000-00-00";
+        refreshUnlock();
+        closeModal();
+        mode = "cards"; view = "today"; flipped = false; render();
+        break;
+      case "reset":
+        if (confirm("모든 공부 기록(도장, 별)을 지울까요? 되돌릴 수 없어요.")) {
+          state = fresh(); save();
+          closeModal();
+          mode = "cards"; view = "today"; flipped = false; render();
+        }
+        break;
+    }
   }
 
   // ---------- 모달 ----------
   function openModal(id) {
+    parent = null;
+    $modal.classList.remove("parent-modal");
     modalItem = IDIOMS[id];
     modalFlipped = true;
     renderModal();
@@ -399,7 +474,9 @@
   }
   function closeModal() {
     $modal.hidden = true;
+    $modal.classList.remove("parent-modal");
     modalItem = null;
+    parent = null;
     if (canSpeak) window.speechSynthesis.cancel();
   }
 
@@ -473,31 +550,27 @@
       case "go-review": mode = "cards"; quiz = null; view = "review"; render(); break;
       case "filter": reviewFilter = el.dataset.v; render(); break;
       case "open": openModal(+el.dataset.id); break;
-      case "open-next":
-        if (confirm("다음 날 카드 5장을 지금 열까요?")) {
-          state.completed[dayIdx()].date = "0000-00-00";
-          refreshUnlock();
-          mode = "cards"; view = "today"; flipped = false; render();
-        }
-        break;
-      case "reset":
-        if (confirm("모든 공부 기록(도장, 별)을 지울까요? 되돌릴 수 없어요.")) {
-          state = fresh(); save();
-          mode = "cards"; view = "today"; flipped = false; render();
-        }
-        break;
+      case "parent": openParent(); break;
     }
   });
 
   $modal.addEventListener("click", (e) => {
     const el = e.target.closest("[data-act]");
     if (e.target === $modal || e.target.closest(".modal-close")) return closeModal();
-    if (!el) return;
+    if (!el || el.disabled) return;
+    if (parent) return parentAction(el.dataset.act, el);
     if (el.dataset.act === "say") { e.stopPropagation(); sayItem(+el.dataset.id, false); }
     else if (el.dataset.act === "sayall") { e.stopPropagation(); sayItem(+el.dataset.id, true); }
     else if (el.dataset.act === "flip") { modalFlipped = !modalFlipped; renderModal(); }
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$modal.hidden) closeModal(); });
+  document.addEventListener("keydown", (e) => {
+    if ($modal.hidden) return;
+    if (e.key === "Escape") closeModal();
+    else if (parent && !parent.unlocked) {
+      if (/^[0-9]$/.test(e.key)) pinInput(e.key);
+      else if (e.key === "Backspace") parentAction("pin-del");
+    }
+  });
 
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
     if (mode === "quiz" && quiz && !quiz.ended && !confirm("퀴즈를 그만할까요?")) return;

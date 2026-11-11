@@ -252,9 +252,29 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; border-radius: 4
 .stat { background: #fffaf1; border-radius: 16px; padding: 10px 4px; }
 .stat b { display: block; font-family: var(--font-title); font-size: 28px; color: var(--sun-deep); }
 .stat span { font-size: 14px; color: var(--soft); }
-.parent { margin-top: 10px; text-align: left; }
-.parent summary { cursor: pointer; color: var(--soft); font-size: 15px; padding: 8px 4px; }
-.parent .row { flex-wrap: wrap; }
+.parent-btn { margin-top: 14px; color: var(--soft); font-size: 15px; padding: 8px 12px; border-radius: 12px; }
+.parent-btn:active { background: #fff3df; }
+
+/* 보호자 비밀번호 */
+.parent-box { margin: 0; }
+.parent-box h2 { font-size: 24px; }
+.pin-dots { display: flex; justify-content: center; gap: 14px; margin: 16px 0 4px; }
+.pin-dots i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--line); background: #fff; transition: background .1s; }
+.pin-dots i.on { background: var(--sun); border-color: var(--sun-deep); }
+.pin-dots.bad { animation: shake .4s; }
+.pin-dots.bad i { border-color: #ffb3c3; }
+.pin-msg { min-height: 1.6em; font-size: 15px; margin: 4px 0 8px; }
+.pin-msg.bad { color: #c23a5a; }
+.keypad { display: grid; grid-template-columns: repeat(3, 72px); justify-content: center; gap: 10px; }
+.key {
+  height: 60px; border-radius: 16px; font-family: var(--font-title); font-size: 26px;
+  background: #fffaf1; border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line);
+}
+.key:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+.key.del { font-size: 22px; color: var(--soft); }
+.menu-list { display: grid; gap: 6px; margin: 14px 0; text-align: left; }
+.menu-list .btn { width: 100%; }
+.menu-list .muted { margin: 0 4px 10px; font-size: 14px; }
 
 /* ---------- 모달 ---------- */
 .modal {
